@@ -48,8 +48,8 @@ type Message struct {
 
 // This function will listen to the central channel and send every message
 // received on the central channel to every user
-func handleCentralChannel(users []*User, centralChan <-chan *Message) {
-	// listens to channel and sends to the message to other users.
+func broadcast(users []*User, centralChan <-chan *Message) {
+	// listens to channel and sends the message to other users.
 	// Don't send the same message to the same user that created it
 
 	// TODO
