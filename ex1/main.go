@@ -7,7 +7,8 @@ import (
 )
 
 const (
-	N_USERS = 3
+	N_USERS      = 3
+	MAX_MESSAGES = 5
 )
 
 /*
@@ -72,18 +73,25 @@ type Message struct {
 
 // This function will listen to the central channel and send every message
 // received on the central channel to every user
-func broadcast(users []*User, centralChan <-chan *Message) {
+func broadcast(users []*User, centralChan <-chan *Message, doneChan chan<- bool) {
 	// listens to channel and sends the message to other users.
 	// Don't send the same message to the same user that created it
+
+	numberOfMsgs := 0
 
 	// TODO
 	for {
 		select {
 		case message := <-centralChan:
+			numberOfMsgs++
 			for _, user := range users {
 				if user.ID != message.FromUserID {
 					user.MsgChan <- message
 				}
+			}
+
+			if numberOfMsgs > MAX_MESSAGES {
+				doneChan <- true
 			}
 		}
 	}
@@ -93,6 +101,7 @@ func main() {
 
 	// example of central channel
 	centralChan := make(chan *Message)
+	doneChan := make(chan bool)
 
 	// TODO:
 	// - Create N_USERS
@@ -106,9 +115,13 @@ func main() {
 	}
 
 	// - dispatch goroutine to broadcast messages that arrive to the central channel
-	go broadcast(users, centralChan)
+	go broadcast(users, centralChan, doneChan)
 
-	// - test
+	// infinite loop until max messages is reached
 	for {
+		select {
+		case <-doneChan:
+			return
+		}
 	}
 }
