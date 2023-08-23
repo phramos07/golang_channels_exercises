@@ -1,6 +1,10 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"math/rand"
+	"time"
+)
 
 const (
 	N_USERS = 3
@@ -25,20 +29,40 @@ Steps:
 
 type User struct {
 	ID      int
-	MsgChan chan *Message
+	MsgChan chan *Message // this is where user receives message
 }
 
 func (u *User) SendMessage(centralChan chan<- *Message) {
-	message := &Message{
-		FromUserID: u.ID,
-		Content:    fmt.Sprintf("Message from user %d", u.ID),
-	}
+	for {
+		message := &Message{
+			FromUserID: u.ID,
+			Content:    fmt.Sprintf("Hello from user %d\n", u.ID),
+		}
 
-	// TODO : send message to channel
+		userSleep()
+		// TODO : send message to channel
+		centralChan <- message
+	}
 }
 
 func (u *User) ReceiveMessage() {
-	// TODO: listen to user channel and print message received
+	for {
+		message := <-u.MsgChan // broadcast func will write to that channel
+		fmt.Printf("\nUser %d received message from user %d: %s", u.ID, message.FromUserID, message.Content)
+	}
+}
+
+func userSleep() {
+	// simulate the passing of time (between 5 and 10 seconds)
+	rand.Seed(time.Now().UnixNano())
+	min := 5
+	max := 10
+	// rand.Intn(n) -> [0,n) -> [5, 11)
+	// max - min + 1 == 6
+	// intn(6) -> [0, 6) (from 0 to 5)
+	// + min (5) -> from 5 to 10
+	sleepDuration := time.Duration(rand.Intn(max-min+1) + min)
+	time.Sleep(sleepDuration * time.Second)
 }
 
 type Message struct {
@@ -53,8 +77,16 @@ func broadcast(users []*User, centralChan <-chan *Message) {
 	// Don't send the same message to the same user that created it
 
 	// TODO
-
-	// ...
+	for {
+		select {
+		case message := <-centralChan:
+			for _, user := range users {
+				if user.ID != message.FromUserID {
+					user.MsgChan <- message
+				}
+			}
+		}
+	}
 }
 
 func main() {
@@ -62,12 +94,21 @@ func main() {
 	// example of central channel
 	centralChan := make(chan *Message)
 
-	// example of how to write to a channel. Each user will write a message to a channel
-	centralChan <- &Message{}
-
 	// TODO:
 	// - Create N_USERS
-	// - dispatch goroutines to send/receive channels
-	// - dispatch goroutine to distribute messages with central channel handler
+
+	users := make([]*User, N_USERS)
+	for i := 0; i < N_USERS; i++ {
+		users[i] = &User{ID: i + 1, MsgChan: make(chan *Message)}
+		// - dispatch goroutines to send/receive channels // using the word 'go'
+		go users[i].SendMessage(centralChan)
+		go users[i].ReceiveMessage()
+	}
+
+	// - dispatch goroutine to broadcast messages that arrive to the central channel
+	go broadcast(users, centralChan)
+
 	// - test
+	for {
+	}
 }
