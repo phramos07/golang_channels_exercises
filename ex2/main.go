@@ -68,8 +68,8 @@ func processImage(inputPath, outputPath string, wg *sync.WaitGroup, results chan
 }
 
 func main() {
-	inputPaths := []string{"image1.jpg", "image2.png", "image3.jpg"} // Add image file paths
-	outputPath := "output/"                                          // Create the output directory
+	inputPaths := []string{"file1.jpg", "file2.jpg", "file3.jpg"} // Add image file paths
+	outputPath := "output/"                                       // Create the output directory
 
 	results := make(chan string)
 	var wg sync.WaitGroup
